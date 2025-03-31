@@ -10,8 +10,6 @@ FOUNDED_OBJ="rls1FoundedObj.txt"
 FOUNDED_FIRST_TARG="rls1FirstTarget.txt"
 REPORTED_TARG="rls1Reported.txt"
 
-i=0
-
 # Файл обработанных "файлов c именами"
 > $FOUNDED_OBJ
 
@@ -21,6 +19,15 @@ i=0
 # Файл c обработанными (переданными) целями 
 # РЛС проверяет цель на остуствие записи о ней здесь, иначе будет повторная выдача
 > $REPORTED_TARG
+
+# Параметры РЛС [м, град.]
+# Воронеж
+RLS_X=$((9500*1000))
+RLS_Y=$((3000*1000)) 
+RLS_RADIUS=$((4000*1000))
+RLS_SECTOR=200 
+RLS_ROTATE_ANGLE=315
+
 
 # Функция конвертации строки hex в массив char
 convert_hex_2_char() {
@@ -79,6 +86,24 @@ get_type_target() {
 	echo $type_target
 }
 
+# Функция проверки вхождения в зону обзора
+can_i_see() {
+	local x=$1
+    local y=$2
+
+	# Условие 1: дальность до цели меньше радиуса обнаружения
+	# TODO: Условие 2: входит в сектор обзора
+
+	distance=$(echo "sqrt(($x - $RLS_X)^2 + ($y - $RLS_Y)^2)" | bc)
+	if [ $distance -lt $RLS_RADIUS ]; then
+		return 1
+	else
+		return 0
+	fi
+}
+
+i=0
+
 while :
 do
 	# Счетчик такта
@@ -122,6 +147,11 @@ do
 			x0_coord=$(grep $id_target $FOUNDED_FIRST_TARG | cut -d " " -f2)
 			y0_coord=$(grep $id_target $FOUNDED_FIRST_TARG | cut -d " " -f3)
 			
+			# Если не входит в зону видимости, игнорируем цель
+			# if ! can_i_see $x_coord $y_coord; then
+			# 	continue
+			# fi
+
 			# Вычисление скорости через координаты
 			speed=$(calculate_speed $x0_coord $y0_coord $x_coord $y_coord)
 
@@ -133,18 +163,18 @@ do
 			# Определение типа цели по скорости
 			type_target=$(get_type_target $speed)
 
-			echo "V: $speed | type: $type_target"
-			# +0. TODO: Определить, не сообщили ли об этой цели ранее из файла REPORTED_TARG
-			# +1. TODO: определить по изменению координат скорость -> тип
-			# 1.1 TODO: Определить входит ли в зону действия РЛС
-			# 2. TODO: сообщить в КП
-			# +3. TODO: удалить из своей БД после сообщения (т.е. записать в REPORTED_TARG)
-			
+			# Если тип цели не наш, игнорируем
+			if [ "$type_target" != 'ББ БР' ]; then
+				continue
+			fi
+
 			# Запоминаем время обнаружения 
 			time=$(date '+%H:%M:%S:%N' | cut -d. -f1)
-			
-			# Формируем сообщение
-			msg="В $time обнаруж. цель ID:$id_target с коорд: $coord"
+
+			# Отправляем сообщение
+			msg="В $time обнаруж. $type_target ID: $id_target с коорд: $coord"
+			echo $msg
+			# TODO: добавить инфу, если летит в направлении СПРО
 			
 			# Указываем в REPORTED_TARG, что информация о цели обработана
 			echo $id_target >> $REPORTED_TARG
