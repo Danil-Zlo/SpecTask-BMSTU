@@ -1,0 +1,167 @@
+#!/bin/bash
+
+# Папка, где находятся файлы
+TMP_DIR="/tmp/GenTargets"
+
+TARGET_DIR="$TMP_DIR/Targets"
+DESTROY_DIR="$TMP_DIR/Destroy"
+
+FOUNDED_OBJ="rls1FoundedObj.txt"
+FOUNDED_FIRST_TARG="rls1FirstTarget.txt"
+REPORTED_TARG="rls1Reported.txt"
+
+i=0
+
+# Файл обработанных "файлов c именами"
+> $FOUNDED_OBJ
+
+# Файл первичных засечек (ID + coord)
+> $FOUNDED_FIRST_TARG
+
+# Файл c обработанными (переданными) целями 
+# РЛС проверяет цель на остуствие записи о ней здесь, иначе будет повторная выдача
+> $REPORTED_TARG
+
+# Функция конвертации строки hex в массив char
+convert_hex_2_char() {
+	# Название файла как строки
+	filename="$1"
+	
+	# Удаляем 2 символа с конца (мусор)
+	cut_filename="${filename:0:-2}"
+	hex_str=""
+	
+	# Перешагиваем через каждые 2 символа и берем 2 символа
+	for((i=0; i<${#cut_filename}; i+=4)) 
+	do
+		hex_str+="${cut_filename:$i+2:2}"
+	done
+	
+	# Конвертация hex в str
+	id_target=$(echo $hex_str | xxd -r -p)
+	
+	# Отправляем в стандартный вывод
+	echo $id_target
+}
+
+# Функция вычисления скорости [м/c] по 2 точкам 
+calculate_speed() {
+    local x0=$1
+    local y0=$2
+    local x1=$3
+    local y1=$4
+
+    local time=1
+
+    # Вычисление расстояния между двумя точками
+	# bc - это калькулятор
+    local distance=$(echo "sqrt(($x1 - $x0)^2 + ($y1 - $y0)^2)" | bc)
+
+    # Вычисление скорости [м]
+    local speed=$(echo "$distance / $time" | bc)
+
+    echo $speed
+}
+
+# Функция определения типа цели по скорости
+get_type_target() {
+	local speed=$1
+	local type_target=''
+
+	if [ $speed -gt 49 ] && [ $speed -lt 250 ]; then
+		type_target='Самолёт'
+	elif [ $speed -gt 250 ] && [ $speed -lt 1000 ]; then
+		type_target='Крылатая ракета'
+	elif [ $speed -gt 8000 ] && [ $speed -lt 10000 ]; then
+		type_target='ББ БР'
+	fi
+
+	echo $type_target
+}
+
+while :
+do
+	# Массив объектов за текущий такт 
+	list_targets=$(ls -t $TARGET_DIR | head -n 50)
+	
+	# Читаем координаты объекта (если ранее не обнаружили)
+	for targ in $list_targets
+	do	
+		# Декодируем ID через функцию конвертации convert_hex_2_char
+		id_target=$(convert_hex_2_char "$targ")
+			
+		# Проверяем, был ли объект записан раньше
+		if grep -q $targ $FOUNDED_OBJ; then
+			# Если уже записали ранее, имеем дело с 2-й засечкой
+
+			# Проверяем, НЕ сообщили ли на КП об объекте раньше
+			if grep -q $id_target $REPORTED_TARG; then
+				# Если уже сообщали, то пропускаем эту цель
+				continue
+			fi
+			
+			# Получаем НОВЫЕ координаты в формате "X: ... Y: ..."
+			coord=$(cat $TARGET_DIR/$targ)
+			
+			# Новая координата Х и Y
+			x_coord=$(echo $coord | awk '{print $2}')
+			y_coord=$(echo $coord | awk '{print $4}')
+			
+			# Получаем старые координаты (с предыдущего такта, когда был обнаружен впервые)
+			x0_coord=$(grep $id_target $FOUNDED_FIRST_TARG | cut -d " " -f2)
+			y0_coord=$(grep $id_target $FOUNDED_FIRST_TARG | cut -d " " -f3)
+
+			# Вычисление скорости через координаты
+			speed=$(calculate_speed $x0_coord $y0_coord $x_coord $y_coord)
+
+			# Определение типа цели по скорости
+			type_target=$(get_type_target $speed)
+
+			echo "V: $speed | type: $type_target"
+			# 0. TODO: Определить, не сообщили ли об этой цели ранее из файла REPORTED_TARG
+			# +1. TODO: определить по изменению координат скорость -> тип
+			# 1.1 TODO: Определить входит ли в зону действия РЛС
+			# 2. TODO: сообщить в КП
+			# 3. TODO: удалить из своей БД после сообщения (т.е. записать в REPORTED_TARG)
+			
+			# Запоминаем время обнаружения 
+			time=$(date '+%H:%M:%S:%N' | cut -d. -f1)
+			
+			
+			# Формируем сообщение
+			msg="В $time обнаруж. цель ID:$id_target с коорд: $coord"
+			
+			# Указываем в REPORTED_TARG, что информация о цели обработана
+			echo $id_target >> $REPORTED_TARG
+		else
+			# Если не обнаружили ранее, записываем объект во временный файл
+			echo $targ >> $FOUNDED_OBJ			
+			
+			# Проверяем по ID, что файл раньше не был помечен как "1-я засечка" 
+			if grep -q $id_target $FOUNDED_FIRST_TARG; then
+				# Ничего не делаем, если уже был помечен
+				continue				
+			else
+				# Иначе отмечаем как превая засечка
+				echo "Замечено повторно $id_target"
+				
+				# Координаты в формате "X: ... Y: ..."
+				coord=$(cat $TARGET_DIR/$targ)
+				
+				# Координата Х и Y
+				x_coord=$(echo $coord | awk '{print $2}')
+				y_coord=$(echo $coord | awk '{print $4}')				
+
+				# Записываем в файл как 1-я засечка (ID X Y)
+				echo $id_target $x_coord $y_coord >> $FOUNDED_FIRST_TARG
+			fi
+			
+		fi
+		
+	done
+	
+	echo "--------------------"
+	echo $i
+	((i++))
+	sleep 0.5
+done
