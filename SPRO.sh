@@ -164,7 +164,9 @@ do
 			# Если цель обнаружена в файле с выстрелами, значит промахнулись
 			if grep -q $id_target $SHOOTING_TARGETS_ID; then
 				# Сообщаем о промахе
-				echo "Промах ID: $id_target" 
+				msg="Промах ID: $id_target" 
+				echo $msg
+				send_msg "$msg"
 
 				# Удаляем из файла о выстрелах этот ID
                 sed -i "/$id_target/d" $SHOOTING_TARGETS_ID
@@ -175,8 +177,10 @@ do
                 # Новая запись и сообщение о выстреле
                 echo $id_target $i >> $SHOOTING_TARGETS_ID
 
-                # TODO: здесь сообщаем о выстреле
-                echo "Выстрел в цель ID: $id_target"
+                # Сообщаем о выстреле
+                msg="Выстрел в цель ID: $id_target"
+				echo $msg
+				send_msg "$msg"
 
 				# Итерация закончена
                 continue
@@ -228,8 +232,7 @@ do
 			# Отправляем сообщение
 			msg="В $time обнаруж. $type_target Speed: $speed ID: $id_target с коорд: $coord"
 			echo $msg
-
-			send_msg "$msg"	
+			send_msg "$msg"
 			
 			# Указываем в REPORTED_TARG, что информация о цели обработана
 			echo $id_target >> $REPORTED_TARG
@@ -240,8 +243,11 @@ do
 			# Записываем ID цели в БД о том, что по цели был выстрел + номер такта
 			echo $id_target $i >> $SHOOTING_TARGETS_ID
 
-            # TODO: здесь сообщаем о выстреле
-            echo "Выстрел в цель ID: $id_target"
+            # Сообщаем о выстреле
+            msg="Выстрел в цель ID: $id_target"
+			echo $msg
+			send_msg "$msg"
+
 		else
 			# Заметили впервые -> записываем
 			
