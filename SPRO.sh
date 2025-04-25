@@ -1,5 +1,7 @@
 #!/bin/bash
 
+MaxKolTargets=5      # Максимальное количество целей
+
 # Папка, где находятся файлы
 TMP_DIR="/tmp/GenTargets"
 
@@ -61,15 +63,22 @@ calculate_speed() {
     local x1=$3
     local y1=$4
 
-	# Время = 1 сек, так как считаем за 1 такт
-    local time=1
+	local speed
 
-    # Вычисление расстояния между двумя точками
-	# bc - это калькулятор
-    local distance=$(echo "sqrt(($x1 - $x0)^2 + ($y1 - $y0)^2)" | bc)
+	# Если x0, y0 отрицательные, значит цель была помечена как "нерасматриваемая" -> скорость считаем 0
+	if [ $x0 -lt 0 ] && [ $y0 -lt 0 ]; then
+		speed=0
+	else
+		# Время = 1 сек, так как считаем за 1 такт
+		local time=1
 
-    # Вычисление скорости [м]
-    local speed=$(echo "$distance / $time" | bc)
+		# Вычисление расстояния между двумя точками
+		# bc - это калькулятор
+		local distance=$(echo "sqrt(($x1 - $x0)^2 + ($y1 - $y0)^2)" | bc)
+
+		# Вычисление скорости [м]
+		speed=$(echo "$distance / $time" | bc)
+	fi
 
     echo $speed
 }
@@ -118,7 +127,7 @@ do
 	((i++))
 
 	# Массив объектов за текущий такт (если меняю количество max целей в генераторе, то head тоже изменить)
-	list_targets=$(ls -t $TARGET_DIR | head -n 1)
+	list_targets=$(ls -t $TARGET_DIR | head -n $MaxKolTargets)
 	
 	# Читаем координаты объекта
 	for targ in $list_targets
@@ -160,7 +169,7 @@ do
                 continue
 			fi		
             
-    		# Проверяем, НЕ сообщили ли на КП об объекте раньше
+    		# Проверяем, НЕ сообщили ли на КП об объекте раньше (либо раньше уже "отмели" как "неподоходящий тип")
 			if grep -q $id_target $REPORTED_TARG; then
 				# Если уже сообщали, то пропускаем эту цель
 				continue
@@ -172,7 +181,6 @@ do
 			# Новая координата Х и Y
 			x_coord=$(echo $coord | awk '{print $2}')
 			y_coord=$(echo $coord | awk '{print $4}')
-            echo "ID $id_target X: $x_coord Y: $y_coord"
 			
 			# Получаем старые координаты (с предыдущего такта, когда был обнаружен впервые)
 			x0_coord=$(grep $id_target $FOUNDED_FIRST_TARG | cut -d " " -f2)
@@ -181,24 +189,25 @@ do
 			# Вычисление скорости через координаты
 			speed=$(calculate_speed $x0_coord $y0_coord $x_coord $y_coord)
 			
-			# Если скорость нулевая, игнорируем цель
+			# Если скорость нулевая, игнорируем цель, помечаем как "рассмотренная"
 			if [ $speed -eq 0 ]; then
+				echo $id_target >> $REPORTED_TARG
 				continue
 			fi
 
 			# Определение типа цели по скорости
 			type_target=$(get_type_target $speed)
 
-			# Если тип цели не наш, игнорируем
+			# Если тип цели не наш, игнорируем, помечаем как "рассмотренная"
 			if [ "$type_target" != 'ББ БР' ]; then
+				echo $id_target >> $REPORTED_TARG
 				continue
 			fi
 
 			# Если не входит в зону видимости, игнорируем цель
-			if ! can_i_see $x_coord $y_coord; then
-				echo "Цель не вижу"
-				continue
-			fi
+			# if ! can_i_see $x_coord $y_coord; then
+			# 	continue
+			# fi
 
 			# Запоминаем время обнаружения 
 			time=$(date '+%H:%M:%S:%N' | cut -d. -f1)
