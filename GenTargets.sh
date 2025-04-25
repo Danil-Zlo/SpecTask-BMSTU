@@ -3,7 +3,7 @@
 (( BASH_VERSINFO[0] < 4 )) && exit 1
 
 declare -A TId
-MaxKolTargets=10      # Максимальное количество целей
+MaxKolTargets=1      # Максимальное количество целей
 Probability=70        # Вероятность поражения %
 
 RangeX=13000000       # Метры
@@ -131,6 +131,7 @@ do
     if [ "$1" == "map" ] || [ "$1" == "-map" ]; then
       if (( clean % 2 == 0 )); then
         clear
+
         for ((i = 0; i <= $MaxKolTargets; i++)); do
           if [ ! -z "${TId[${i}_id]}" ]; then
             [[ ${TId[${i}_speedX]} -ge 0 ]] && [[ ${TId[${i}_speedY]} -ge 0 ]] && destinXY=$(echo -e '\U00002197') || \
@@ -152,7 +153,7 @@ do
             done
             echo "│${mapsid[$(($y*130))]}"; mapsid[$(($y*130)) ]=""
         done
-        echo "└$(printf '─%.0s' {1..131})┘"
+        echo "└$(printf '─%.0s' {1..131})┘"        
       fi
     fi
     ((clean++))

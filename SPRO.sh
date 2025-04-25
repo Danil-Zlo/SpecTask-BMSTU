@@ -6,9 +6,11 @@ TMP_DIR="/tmp/GenTargets"
 TARGET_DIR="$TMP_DIR/Targets"
 DESTROY_DIR="$TMP_DIR/Destroy"
 
-FOUNDED_OBJ="rls1FoundedObj.txt"
-FOUNDED_FIRST_TARG="rls1FirstTarget.txt"
-REPORTED_TARG="rls1Reported.txt"
+FOUNDED_OBJ="sproFoundedObj.txt"
+FOUNDED_FIRST_TARG="sproFirstTarget.txt"
+REPORTED_TARG="sproReported.txt"
+
+SHOOTING_TARGETS_ID="sproShootingTarget.txt"
 
 # Файл обработанных "файлов c именами"
 > $FOUNDED_OBJ
@@ -16,19 +18,14 @@ REPORTED_TARG="rls1Reported.txt"
 # Файл первичных засечек (ID + coord)
 > $FOUNDED_FIRST_TARG
 
+# Файл с ID целей, по которым стреляли
+> $SHOOTING_TARGETS_ID
+
 # Файл c обработанными (переданными) целями 
-# РЛС проверяет цель на остуствие записи о ней здесь, иначе будет повторная выдача
+# РЛС проверяет цель на отсутствие записи о ней здесь, иначе будет повторная выдача
 > $REPORTED_TARG
 
-# Параметры РЛС1 [м, град.]
-# Хабаровск. Воронеж-ДМ
-RLS_X=$((9500*1000))
-RLS_Y=$((3000*1000)) 
-RLS_RADIUS=$((4000*1000))
-RLS_SECTOR=200 
-RLS_ROTATE_ANGLE=315
-
-# Параметры СПРО
+# Параметры СПРО [м, град.]
 SPRO_X=$((3300*1000))
 SPRO_Y=$((3500*1000))
 SPRO_RADIUS=$((1100*1000))
@@ -55,6 +52,7 @@ convert_hex_2_char() {
 	# Отправляем в стандартный вывод
 	echo $id_target
 }
+
 
 # Функция вычисления скорости [м/c] по 2 точкам 
 calculate_speed() {
@@ -100,46 +98,12 @@ can_i_see() {
 	# Условие 1: дальность до цели меньше радиуса обнаружения
 	# TODO: Условие 2: входит в сектор обзора
 
-	distance=$(echo "sqrt(($x - $RLS_X)^2 + ($y - $RLS_Y)^2)" | bc)
-	if [ $distance -lt $RLS_RADIUS ]; then
+	distance=$(echo "sqrt(($x - $SPRO_X)^2 + ($y - $SPRO_Y)^2)" | bc)
+
+	if [ $distance -lt $SPRO_RADIUS ]; then
 		return 1
 	else
-		return 0
-	fi
-}
-
-# Функция определения направления движения цели
-# Возвращает 1, если цель летит в направлении объекта. Иначе - 0
-can_SPRO_see() {
-	# Координаты СПРН 
-	local x=$SPRO_X
-	local y=$SPRO_Y
-	local R=$SPRO_RADIUS
-
-	# Координаты цели
-	local x1=$1
-	local y1=$2
-	local x2=$3
-	local y2=$4
-
-	A=$(echo "($x2 - $x1)^2 + ($y2 - $y1)^2" | bc)
-	B=$(echo "2 * (($x2 - $x1) * ($x1 - $x) + ($y2 - $y1) * ($y1 - $y))" | bc)
-	C=$(echo "($x1 - $x)^2 + ($y1 - $y)^2 - $R^2" | bc)
-
-	# ABC - множители квадратного уравнения
-	# D - дискриминант
-	
-	D=$(echo "$B^2 - 4 * $A * $C" | bc)
-
-    # Если D < 0, пересечения нет;
-    # если D = 0, есть одно пересечение, прямая и окружность касаются;
-    # если D > 0, прямая и окружность пересекаются в двух точках.
-	
-	# Флаг -l для работы с большими числами 
-	if (( $(echo "$D < 0" | bc -l) )); then
-		return 0
-	else
-		return 1
+		return 0    
 	fi
 }
 
@@ -152,12 +116,12 @@ do
 	echo $i
 	((i++))
 
-	# Массив объектов за текущий такт 
-	list_targets=$(ls -t $TARGET_DIR | head -n 50)
+	# Массив объектов за текущий такт (если меняю количество max целей в генераторе, то head тоже изменить)
+	list_targets=$(ls -t $TARGET_DIR | head -n 1)
 	
 	# Читаем координаты объекта
 	for targ in $list_targets
-	do	
+	do
 		# Проверяем на наличие во временном файле (чтобы на одной итерации обработать цель ТОЛЬКО 1 раз) 
 		if grep -q $targ $FOUNDED_OBJ; then
 			# Уже записали -> пропускаем
@@ -172,20 +136,42 @@ do
 			
 		# Проверяем, был ли объект засечён раньше
 		if grep -q $id_target $FOUNDED_FIRST_TARG; then
-			# Если уже записали ранее, имеем дело с 2-й засечкой			
+			# Если уже записали ранее, имеем дело с 2-й засечкой	
+			
+			# Если цель обнаружена в файле с выстрелами, значит промахнулись
+			if grep -q $id_target $SHOOTING_TARGETS_ID; then
+				# Сообщаем о промахе
+				echo "Промах ID: $id_target" 
 
-			# Проверяем, НЕ сообщили ли на КП об объекте раньше
+				# Удаляем из файла о выстрелах этот ID
+                sed -i "/$id_target/d" $SHOOTING_TARGETS_ID
+
+                # Повторный выстрел
+                echo "SPRO" >> $DESTROY_DIR/$id_target
+
+                # Новая запись и сообщение о выстреле
+                echo $id_target $i >> $SHOOTING_TARGETS_ID
+
+                # TODO: здесь сообщаем о выстреле
+                echo "Выстрел в цель ID: $id_target"
+
+				# Итерация закончена
+                continue
+			fi		
+            
+    		# Проверяем, НЕ сообщили ли на КП об объекте раньше
 			if grep -q $id_target $REPORTED_TARG; then
 				# Если уже сообщали, то пропускаем эту цель
 				continue
 			fi
-
+            
 			# Получаем НОВЫЕ координаты в формате "X: ... Y: ..."
 			coord=$(cat $TARGET_DIR/$targ)
 			
 			# Новая координата Х и Y
 			x_coord=$(echo $coord | awk '{print $2}')
 			y_coord=$(echo $coord | awk '{print $4}')
+            echo "ID $id_target X: $x_coord Y: $y_coord"
 			
 			# Получаем старые координаты (с предыдущего такта, когда был обнаружен впервые)
 			x0_coord=$(grep $id_target $FOUNDED_FIRST_TARG | cut -d " " -f2)
@@ -219,17 +205,19 @@ do
 			msg="В $time обнаруж. $type_target Speed: $speed ID: $id_target с коорд: $coord"
 			echo $msg
 
-			# TODO: Добавить в /kr_vko/msg файл с сообщением (название файла "rls1+время.txt")
-			# TODO: Каждое сообщение - новый файл
-			# КП после прочтения сообщения удаляет его
-
-			# Определяем, попадёт ли цель в зону СПРО
-			if can_SPRO_see $x0_coord $y0_coord $x_coord $y_coord; then
-				echo "Цель ID: $id_target движется в направлении СПРО (Воронеж)"
-			fi			
+			# TODO: Добавить в /kr_vko/msg файл с сообщением (название файла "rls1+время.txt")	
 			
 			# Указываем в REPORTED_TARG, что информация о цели обработана
 			echo $id_target >> $REPORTED_TARG
+
+            # Выстрел
+            echo "SPRO" >> $DESTROY_DIR/$id_target
+
+			# Записываем ID цели в БД о том, что по цели был выстрел + номер такта
+			echo $id_target $i >> $SHOOTING_TARGETS_ID
+
+            # TODO: здесь сообщаем о выстреле
+            echo "Выстрел в цель ID: $id_target"
 		else
 			# Заметили впервые -> записываем
 			
@@ -244,5 +232,21 @@ do
 			echo $id_target $x_coord $y_coord >> $FOUNDED_FIRST_TARG			
 		fi
 	done
+
+    # Проверяем БД обстреленных целей на наличие сбитых
+    while IFS= read -r line; do
+        # Если разница в тактах больше 1, значит цель больше не появлялась -> сбита
+        i_shoot=$(echo "$line" | awk '{print $2}')
+        if (( i_shoot < i-1 )); then
+            id_trg=$(echo "$line" | awk '{print $1}')
+
+            # Удаляем из файла о выстрелах этот ID
+            sed -i "/$id_trg/d" $SHOOTING_TARGETS_ID
+
+            # Сообщаем, что цель сбита
+            echo "Сбита цель ID: $id_trg"
+        fi
+    done < "$SHOOTING_TARGETS_ID"
+    
 	sleep 0.5
 done
