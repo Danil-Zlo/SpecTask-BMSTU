@@ -37,6 +37,7 @@ rm $MSG_DIR/*
 SPRO_X=$((3300*1000))
 SPRO_Y=$((3500*1000))
 SPRO_RADIUS=$((1100*1000))
+SPRO_AMMUNITION=1  # Боезапас
 
 
 # Функция конвертации строки hex в массив char
@@ -131,6 +132,8 @@ send_msg() {
 }
 
 i=0
+# Заряжаем систему
+ammunition=$SPRO_AMMUNITION
 
 while :
 do
@@ -171,8 +174,13 @@ do
 				# Удаляем из файла о выстрелах этот ID
                 sed -i "/$id_target/d" $SHOOTING_TARGETS_ID
 
+				# Если боекмоплекта нет -> стрелять не можем, пропускам итерацию
+				if [ $ammunition -eq 0 ]; then
+					continue            
+				fi
+
                 # Повторный выстрел
-                echo "SPRO" >> $DESTROY_DIR/$id_target
+                echo $MY_NAME >> $DESTROY_DIR/$id_target
 
                 # Новая запись и сообщение о выстреле
                 echo $id_target $i >> $SHOOTING_TARGETS_ID
@@ -237,8 +245,14 @@ do
 			# Указываем в REPORTED_TARG, что информация о цели обработана
 			echo $id_target >> $REPORTED_TARG
 
-            # Выстрел
-            echo "SPRO" >> $DESTROY_DIR/$id_target
+			# Если боекмоплекта нет -> стрелять не можем, пропускам итерацию
+			if [ $ammunition -eq 0 ]; then
+				continue            
+			fi
+
+			# Выстрел (если есть заряд)
+			echo $MY_NAME >> $DESTROY_DIR/$id_target
+			((ammunition--))
 
 			# Записываем ID цели в БД о том, что по цели был выстрел + номер такта
 			echo $id_target $i >> $SHOOTING_TARGETS_ID
@@ -247,6 +261,13 @@ do
             msg="Выстрел в цель ID: $id_target"
 			echo $msg
 			send_msg "$msg"
+
+			# Если закончился боекомплект -> сообщаем
+			if [ $ammunition -eq 0 ]; then
+				msg="Закончился боекомплект"
+				echo $msg
+				send_msg "$msg"            
+			fi
 
 		else
 			# Заметили впервые -> записываем
