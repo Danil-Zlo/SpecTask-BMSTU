@@ -1,6 +1,8 @@
 #!/bin/bash
 
-MaxKolTargets=5      # Максимальное количество целей
+MY_NAME="SPRO"        # Название данного объекта
+Max_N_Targets=5       # Максимальное количество целей (согласовано с генератором)
+
 
 # Папка, где находятся файлы
 TMP_DIR="/tmp/GenTargets"
@@ -13,6 +15,10 @@ FOUNDED_FIRST_TARG="sproFirstTarget.txt"
 REPORTED_TARG="sproReported.txt"
 
 SHOOTING_TARGETS_ID="sproShootingTarget.txt"
+
+# Директория для сообщений
+MSG_DIR="./messages"
+rm $MSG_DIR/*
 
 # Файл обработанных "файлов c именами"
 > $FOUNDED_OBJ
@@ -112,6 +118,18 @@ can_i_see() {
 	fi
 }
 
+# Функция создания файла с ЗАШИФРОВАННЫМ сообщением на КП
+send_msg() {
+	local msg=$1
+
+	# Шифрование строки
+	msg=$(echo "$msg" | rev) 
+
+	# Текущее время в нано сек
+	local time=$(date +%s%N)
+	echo "$msg" > "$MSG_DIR/${MY_NAME}_${time}.txt"
+}
+
 i=0
 
 while :
@@ -122,7 +140,7 @@ do
 	((i++))
 
 	# Массив объектов за текущий такт (если меняю количество max целей в генераторе, то head тоже изменить)
-	list_targets=$(ls -t $TARGET_DIR | head -n $MaxKolTargets)
+	list_targets=$(ls -t $TARGET_DIR | head -n $Max_N_Targets)
 	
 	# Читаем координаты объекта
 	for targ in $list_targets
@@ -211,7 +229,7 @@ do
 			msg="В $time обнаруж. $type_target Speed: $speed ID: $id_target с коорд: $coord"
 			echo $msg
 
-			# TODO: Добавить в /kr_vko/msg файл с сообщением (название файла "rls1+время.txt")	
+			send_msg "$msg"	
 			
 			# Указываем в REPORTED_TARG, что информация о цели обработана
 			echo $id_target >> $REPORTED_TARG
