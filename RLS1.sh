@@ -1,5 +1,8 @@
 #!/bin/bash
 
+MY_NAME="RLS_1"        # Название данного объекта
+Max_N_Targets=5       # Максимальное количество целей (согласовано с генератором)
+
 # Папка, где находятся файлы
 TMP_DIR="/tmp/GenTargets"
 
@@ -9,6 +12,9 @@ DESTROY_DIR="$TMP_DIR/Destroy"
 FOUNDED_OBJ="rls1FoundedObj.txt"
 FOUNDED_FIRST_TARG="rls1FirstTarget.txt"
 REPORTED_TARG="rls1Reported.txt"
+
+# Директория для сообщений
+MSG_DIR="./messages"
 
 # Файл обработанных "файлов c именами"
 > $FOUNDED_OBJ
@@ -144,6 +150,18 @@ can_SPRO_see() {
 	fi
 }
 
+# Функция создания файла с ЗАШИФРОВАННЫМ сообщением на КП
+send_msg() {
+	local msg=$1
+
+	# Шифрование строки
+	msg=$(echo "| $MY_NAME | $msg" | rev) 
+
+	# Текущее время в нано сек
+	local time=$(date +%s%N)
+	echo "$msg" > "$MSG_DIR/${MY_NAME}_${time}.txt"
+}
+
 i=0
 
 while :
@@ -221,14 +239,13 @@ do
 			# Отправляем сообщение
 			msg="В $time обнаруж. $type_target Speed: $speed ID: $id_target с коорд: $coord"
 			echo $msg
-
-			# TODO: Добавить в /kr_vko/msg файл с сообщением (название файла "rls1+время.txt")
-			# TODO: Каждое сообщение - новый файл
-			# КП после прочтения сообщения удаляет его
+			send_msg "$msg"
 
 			# Определяем, попадёт ли цель в зону СПРО
 			if can_SPRO_see $x0_coord $y0_coord $x_coord $y_coord; then
-				echo "Цель ID: $id_target движется в направлении СПРО (Воронеж)"
+				msg="Цель ID: $id_target движется в направлении СПРО (Воронеж)"
+				echo $msg
+				send_msg "$msg"
 			fi			
 			
 			# Указываем в REPORTED_TARG, что информация о цели обработана
