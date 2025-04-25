@@ -123,7 +123,7 @@ send_msg() {
 	local msg=$1
 
 	# Шифрование строки
-	msg=$(echo "$msg" | rev) 
+	msg=$(echo "| $MY_NAME | $msg" | rev) 
 
 	# Текущее время в нано сек
 	local time=$(date +%s%N)
