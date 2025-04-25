@@ -197,6 +197,7 @@ do
 			
 			# Если скорость нулевая, игнорируем цель
 			if [ $speed -eq 0 ]; then
+				echo $id_target >> $REPORTED_TARG
 				continue
 			fi
 
@@ -205,6 +206,7 @@ do
 
 			# Если тип цели не наш, игнорируем
 			if [ "$type_target" != 'ББ БР' ]; then
+				echo $id_target >> $REPORTED_TARG
 				continue
 			fi
 
