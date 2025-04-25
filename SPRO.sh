@@ -101,9 +101,10 @@ can_i_see() {
 	distance=$(echo "sqrt(($x - $SPRO_X)^2 + ($y - $SPRO_Y)^2)" | bc)
 
 	if [ $distance -lt $SPRO_RADIUS ]; then
-		return 1
+		# 0 - результат выполнения без ошибки (true)
+		return 0
 	else
-		return 0    
+		return 1    
 	fi
 }
 
@@ -195,6 +196,7 @@ do
 
 			# Если не входит в зону видимости, игнорируем цель
 			if ! can_i_see $x_coord $y_coord; then
+				echo "Цель не вижу"
 				continue
 			fi
 

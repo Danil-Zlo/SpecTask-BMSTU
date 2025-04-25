@@ -102,9 +102,9 @@ can_i_see() {
 
 	distance=$(echo "sqrt(($x - $RLS_X)^2 + ($y - $RLS_Y)^2)" | bc)
 	if [ $distance -lt $RLS_RADIUS ]; then
-		return 1
-	else
 		return 0
+	else
+		return 1
 	fi
 }
 
@@ -136,7 +136,8 @@ can_SPRO_see() {
     # если D > 0, прямая и окружность пересекаются в двух точках.
 	
 	# Флаг -l для работы с большими числами 
-	if (( $(echo "$D < 0" | bc -l) )); then
+	if (( $(echo "$D >= 0" | bc -l) )); then
+		# 0 - true
 		return 0
 	else
 		return 1
