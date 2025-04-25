@@ -37,7 +37,8 @@ rm $MSG_DIR/*
 SPRO_X=$((3300*1000))
 SPRO_Y=$((3500*1000))
 SPRO_RADIUS=$((1100*1000))
-SPRO_AMMUNITION=1  # Боезапас
+SPRO_AMMUNITION=2   # Боезапас
+RECHARGE_PERIOD=20  # Период перезарядки (в тактах)
 
 
 # Функция конвертации строки hex в массив char
@@ -133,7 +134,8 @@ send_msg() {
 
 i=0
 # Заряжаем систему
-ammunition=$SPRO_AMMUNITION
+ammunition=$SPRO_AMMUNITION		# оставшееся количество боезапаса [шт]
+i_out_ammunition=0  			# Такт, на котором закончился боезапас
 
 while :
 do
@@ -144,6 +146,17 @@ do
 
 	# Массив объектов за текущий такт (если меняю количество max целей в генераторе, то head тоже изменить)
 	list_targets=$(ls -t $TARGET_DIR | head -n $Max_N_Targets)
+
+	# Перезаряжаемся, если прошёл КД или нет хотя бы одного заряда
+	if (($i - $i_out_ammunition > $RECHARGE_PERIOD)) && (( $ammunition != $SPRO_AMMUNITION )); then
+		ammunition=$SPRO_AMMUNITION
+		
+		# Сообщаем о том, что перезарядились
+		msg="Боезапас пополнен. Готов к обороне"
+		echo $msg
+		send_msg "$msg"
+
+	fi
 	
 	# Читаем координаты объекта
 	for targ in $list_targets
@@ -179,8 +192,9 @@ do
 					continue            
 				fi
 
-                # Повторный выстрел
+                # Повторный выстрел (если есть заряд)
                 echo $MY_NAME >> $DESTROY_DIR/$id_target
+				((ammunition--))
 
                 # Новая запись и сообщение о выстреле
                 echo $id_target $i >> $SHOOTING_TARGETS_ID
@@ -189,6 +203,16 @@ do
                 msg="Выстрел в цель ID: $id_target"
 				echo $msg
 				send_msg "$msg"
+
+				# Если закончился боекомплект -> сообщаем
+				if [ $ammunition -eq 0 ]; then
+					msg="Закончился боекомплект"
+					echo $msg
+					send_msg "$msg"      
+
+					# Запоминаем такт, на котором закончился боекомплект
+					i_out_ammunition=$i      
+				fi
 
 				# Итерация закончена
                 continue
