@@ -234,10 +234,10 @@ do
 			fi
 
 			# Запоминаем время обнаружения 
-			time=$(date '+%H:%M:%S:%N' | cut -d. -f1)
+			# time=$(date '+%H:%M:%S:%N' | cut -d. -f1)
 
 			# Отправляем сообщение
-			msg="В $time обнаруж. $type_target Speed: $speed ID: $id_target с коорд: $coord"
+			msg="Обнаруж. $type_target Speed: $speed ID: $id_target с коорд: $coord"
 			echo $msg
 			send_msg "$msg"
 

@@ -40,7 +40,6 @@ SPRO_RADIUS=$((1100*1000))
 SPRO_AMMUNITION=2   # Боезапас
 RECHARGE_PERIOD=20  # Период перезарядки (в тактах)
 
-
 # Функция конвертации строки hex в массив char
 convert_hex_2_char() {
 	# Название файла как строки
@@ -62,7 +61,6 @@ convert_hex_2_char() {
 	# Отправляем в стандартный вывод
 	echo $id_target
 }
-
 
 # Функция вычисления скорости [м/c] по 2 точкам 
 calculate_speed() {
@@ -152,10 +150,9 @@ do
 		ammunition=$SPRO_AMMUNITION
 		
 		# Сообщаем о том, что перезарядились
-		msg="Боезапас пополнен. Готов к обороне"
+		msg="Боезапас $MY_NAME пополнен"
 		echo $msg
 		send_msg "$msg"
-
 	fi
 	
 	# Читаем координаты объекта
@@ -259,10 +256,10 @@ do
 			# fi
 
 			# Запоминаем время обнаружения 
-			time=$(date '+%H:%M:%S:%N' | cut -d. -f1)
+			# time=$(date '+%H:%M:%S:%N' | cut -d. -f1)
 
 			# Отправляем сообщение
-			msg="В $time обнаруж. $type_target Speed: $speed ID: $id_target с коорд: $coord"
+			msg="Обнаруж. $type_target Speed: $speed ID: $id_target с коорд: $coord"
 			echo $msg
 			send_msg "$msg"
 			
