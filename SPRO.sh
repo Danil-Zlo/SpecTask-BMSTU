@@ -18,7 +18,6 @@ SHOOTING_TARGETS_ID="sproShootingTarget.txt"
 
 # Директория для сообщений
 MSG_DIR="./messages"
-rm $MSG_DIR/*
 
 # Файл обработанных "файлов c именами"
 > $FOUNDED_OBJ
@@ -145,8 +144,8 @@ do
 	# Массив объектов за текущий такт (если меняю количество max целей в генераторе, то head тоже изменить)
 	list_targets=$(ls -t $TARGET_DIR | head -n $Max_N_Targets)
 
-	# Перезаряжаемся, если прошёл КД или нет хотя бы одного заряда
-	if (($i - $i_out_ammunition > $RECHARGE_PERIOD)) && (( $ammunition != $SPRO_AMMUNITION )); then
+	# Перезаряжаемся, если прошёл КД и боекомплект пустой
+	if (($i - $i_out_ammunition > $RECHARGE_PERIOD)) && (( $ammunition == 0 )); then
 		ammunition=$SPRO_AMMUNITION
 		
 		# Сообщаем о том, что перезарядились
@@ -208,7 +207,7 @@ do
 					send_msg "$msg"      
 
 					# Запоминаем такт, на котором закончился боекомплект
-					i_out_ammunition=$i      
+					i_out_ammunition=$i
 				fi
 
 				# Итерация закончена
@@ -287,7 +286,10 @@ do
 			if [ $ammunition -eq 0 ]; then
 				msg="Закончился боекомплект"
 				echo $msg
-				send_msg "$msg"            
+				send_msg "$msg"
+
+				# Запоминаем такт, на котором закончился боекомплект
+				i_out_ammunition=$i         
 			fi
 
 		else

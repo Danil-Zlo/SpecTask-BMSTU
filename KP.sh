@@ -2,10 +2,17 @@
 
 # Директория с логами (куда пишем)
 LOG_DIR="./logs"
-rm $LOG_DIR/*
 
 # Директория с сообщениями (откуда читаем)
-MSG_DIR="./messages/"
+MSG_DIR="./messages"
+
+# Чистка логов и сообщений
+if [ -n "$(ls -A $MSG_DIR)" ]; then
+    rm -rf $MSG_DIR/*
+fi
+if [ -n "$(ls -A $LOG_DIR)" ]; then
+    rm -rf $LOG_DIR/*
+fi
 
 # Логи всей системы
 LOG_COMPLEX="$LOG_DIR/complex.txt"
@@ -17,11 +24,18 @@ LOG_RLS3="$LOG_DIR/RLS3.txt"
 
 LOG_SPRO="$LOG_DIR/SPRO.txt"
 
-LOG_ZRDN="$LOG_DIR/ZRDN.txt"
+LOG_ZRDN1="$LOG_DIR/ZRDN1.txt"
+LOG_ZRDN2="$LOG_DIR/ZRDN2.txt"
+LOG_ZRDN3="$LOG_DIR/ZRDN3.txt"
 
 > $LOG_COMPLEX
 > $LOG_RLS1
+> $LOG_RLS2
+> $LOG_RLS3
 > $LOG_SPRO
+> $LOG_ZRDN1
+> $LOG_ZRDN2
+> $LOG_ZRDN3
 
 # Функция ДЕКОДИРОВАНИЯ сообщения
 decode_msg() {
