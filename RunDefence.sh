@@ -2,12 +2,12 @@
 
 # Функция для завершения фоновых процессов
 cleanup() {
-    echo "Отключение всех объектов..."
+    echo "Info: Отключение всех объектов..."
     for pid in "${pids[@]}"; do
         kill "$pid" 2>/dev/null
     done
     wait
-    echo "Оборона отключена"
+    echo "Info: Оборона отключена"
 }
 
 # Скрипт запуска всех объектов в одном терминале
@@ -29,11 +29,11 @@ bash RLS2.sh &
 pids+=($!)
 bash RLS3.sh &
 pids+=($!)
-echo "РЛС активны"
+echo "Info: РЛС активны"
 
 bash SPRO.sh &
 pids+=($!)  
-echo "СПРО активен"
+echo "Info: СПРО активен"
 
 bash ZRDN1.sh &
 pids+=($!)
@@ -41,7 +41,7 @@ bash ZRDN2.sh &
 pids+=($!)
 bash ZRDN3.sh &
 pids+=($!)
-echo "ЗРДН активны"
+echo "Info: ЗРДН активны"
 
 # Ожидание завершения всех фоновых процессов
 wait

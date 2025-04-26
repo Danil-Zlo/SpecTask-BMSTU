@@ -1,5 +1,6 @@
 #!/bin/bash
 
+TACT=0.5  # Такт [c]
 Max_N_Targets=5       # Максимальное количество целей (согласовано с генератором)
 
 # Функция конвертации строки hex в массив char
@@ -126,4 +127,14 @@ send_msg() {
 	# Текущее время в нано сек
 	local time=$(date +%s%N)
 	echo "$msg" > "$MSG_DIR/${MY_NAME}_${time}.txt"
+}
+
+# Функция ДЕКОДИРОВАНИЯ сообщения
+decode_msg() {
+	local msg=$1
+
+	# Расшифровка строки
+	msg=$(echo "$msg" | rev)
+
+	echo "$msg"
 }

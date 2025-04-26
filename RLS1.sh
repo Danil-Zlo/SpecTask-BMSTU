@@ -2,7 +2,7 @@
 
 source ./pkg/functions.sh
 
-MY_NAME="RLS_1"        # Название данного объекта
+MY_NAME="RLS1"        # Название данного объекта
 
 # Параметры РЛС1 [м, град.]
 # Хабаровск. Воронеж-ДМ
@@ -142,5 +142,5 @@ do
 			echo $id_target $x_coord $y_coord >> $FOUNDED_FIRST_TARG			
 		fi
 	done
-	sleep 0.5
+	sleep $TACT
 done

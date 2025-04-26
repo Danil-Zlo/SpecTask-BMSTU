@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./pkg/functions.sh
+
 # Директория с логами (куда пишем)
 LOG_DIR="./logs"
 
@@ -7,12 +9,14 @@ LOG_DIR="./logs"
 MSG_DIR="./messages"
 
 # Чистка логов и сообщений
-# if [ -n "$(ls -A $MSG_DIR)" ]; then
-#     rm -rf $MSG_DIR/*
-# fi
-# if [ -n "$(ls -A $LOG_DIR)" ]; then
-#     rm -rf $LOG_DIR/*
-# fi
+if [ -n "$(ls -A $MSG_DIR)" ]; then
+    rm -rf $MSG_DIR/*
+    echo "Info: Сообщения удалены"
+fi
+if [ -n "$(ls -A $LOG_DIR)" ]; then
+    rm -rf $LOG_DIR/*
+    echo "Info: Логи удалены"
+fi
 
 # Логи всей системы
 LOG_COMPLEX="$LOG_DIR/complex.txt"
@@ -36,16 +40,6 @@ LOG_ZRDN3="$LOG_DIR/ZRDN3.txt"
 > $LOG_ZRDN1
 > $LOG_ZRDN2
 > $LOG_ZRDN3
-
-# Функция ДЕКОДИРОВАНИЯ сообщения
-decode_msg() {
-	local msg=$1
-
-	# Расшифровка строки
-	msg=$(echo "$msg" | rev)
-
-	echo "$msg"
-}
 
 while :
 do
@@ -77,4 +71,5 @@ do
             rm $MSG_DIR/$filename
         fi
     done
+    sleep $TACT
 done

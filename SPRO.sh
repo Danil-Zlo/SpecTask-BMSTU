@@ -233,8 +233,7 @@ do
 			send_msg "$msg" 
         fi
     done < "$SHOOTING_TARGETS_ID"
-    
-	sleep 0.5
+	sleep $TACT
 done
 
 # Как исправить баг с ложным попаданием:
