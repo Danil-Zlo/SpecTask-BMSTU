@@ -25,11 +25,23 @@ echo "Коммандный пункт активен"
 
 bash RLS1.sh &
 pids+=($!)
+bash RLS2.sh &
+pids+=($!)
+bash RLS3.sh &
+pids+=($!)
 echo "РЛС активны"
 
 bash SPRO.sh &
 pids+=($!)  
 echo "СПРО активен"
+
+bash ZRDN1.sh &
+pids+=($!)
+bash ZRDN2.sh &
+pids+=($!)
+bash ZRDN3.sh &
+pids+=($!)
+echo "ЗРДН активны"
 
 # Ожидание завершения всех фоновых процессов
 wait
