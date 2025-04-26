@@ -7,12 +7,12 @@ LOG_DIR="./logs"
 MSG_DIR="./messages"
 
 # Чистка логов и сообщений
-if [ -n "$(ls -A $MSG_DIR)" ]; then
-    rm -rf $MSG_DIR/*
-fi
-if [ -n "$(ls -A $LOG_DIR)" ]; then
-    rm -rf $LOG_DIR/*
-fi
+# if [ -n "$(ls -A $MSG_DIR)" ]; then
+#     rm -rf $MSG_DIR/*
+# fi
+# if [ -n "$(ls -A $LOG_DIR)" ]; then
+#     rm -rf $LOG_DIR/*
+# fi
 
 # Логи всей системы
 LOG_COMPLEX="$LOG_DIR/complex.txt"
@@ -71,7 +71,7 @@ do
 
             # Логи
             echo "$time $msg" >> $LOG_COMPLEX
-            echo "$time $msg" >> "$LOG_DIR/$source"
+            echo "$time $msg" >> "$LOG_DIR/$source.txt"
 
             # Сообщение прочитали -> удаляем
             rm $MSG_DIR/$filename
