@@ -1,7 +1,7 @@
 #!/bin/bash
 
 TACT=0.5  # Такт [c]
-Max_N_Targets=5       # Максимальное количество целей (согласовано с генератором)
+Max_N_Targets=50       # Максимальное количество целей (согласовано с генератором)
 
 # Функция конвертации строки hex в массив char
 convert_hex_2_char() {
@@ -68,12 +68,17 @@ can_i_see() {
 	local x=$1
     local y=$2
 
+	local ob_x=$3
+	local ob_y=$4
+
+	local R=$5
+
 	# Условие 1: дальность до цели меньше радиуса обнаружения
 	# TODO: Условие 2: входит в сектор обзора
 
-	distance=$(echo "sqrt(($x - $SPRO_X)^2 + ($y - $SPRO_Y)^2)" | bc)
+	distance=$(echo "sqrt(($x - $ob_x)^2 + ($y - $ob_y)^2)" | bc)
 
-	if [ $distance -lt $SPRO_RADIUS ]; then
+	if [ $distance -lt $R ]; then
 		# 0 - результат выполнения без ошибки (true)
 		return 0
 	else

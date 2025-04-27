@@ -33,7 +33,7 @@ echo "Info: РЛС активны"
 
 bash SPRO.sh &
 pids+=($!)  
-echo "Info: СПРО активен"
+echo "Info: СПРО активна"
 
 bash ZRDN1.sh &
 pids+=($!)

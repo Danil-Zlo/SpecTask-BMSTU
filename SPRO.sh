@@ -8,20 +8,19 @@ MY_NAME="SPRO"        # Название данного объекта
 SPRO_X=$((3300*1000))
 SPRO_Y=$((3500*1000))
 SPRO_RADIUS=$((1100*1000))
-SPRO_AMMUNITION=2   # Боезапас [шт.]
+SPRO_AMMUNITION=20   # Боезапас [шт.]
 RECHARGE_PERIOD=20  # Период перезарядки [такт]
 
-# Папка, где находятся файлы
 TMP_DIR="/tmp/GenTargets"
 
 TARGET_DIR="$TMP_DIR/Targets"
 DESTROY_DIR="$TMP_DIR/Destroy"
 
-FOUNDED_OBJ="sproFoundedObj.txt"
-FOUNDED_FIRST_TARG="sproFirstTarget.txt"
-REPORTED_TARG="sproReported.txt"
-
-SHOOTING_TARGETS_ID="sproShootingTarget.txt"
+DB_DIR="./db"
+FOUNDED_OBJ="$DB_DIR/sproFoundedObj.txt"
+FOUNDED_FIRST_TARG="$DB_DIR/sproFirstTarget.txt"
+REPORTED_TARG="$DB_DIR/sproReported.txt"
+SHOOTING_TARGETS_ID="$DB_DIR/sproShootingTarget.txt"
 
 # Директория для сообщений
 MSG_DIR="./messages"
@@ -160,7 +159,7 @@ do
 			fi
 
 			# Если не входит в зону видимости, игнорируем цель
-			# if ! can_i_see $x_coord $y_coord; then
+			# if ! can_i_see $x_coord $y_coord $SPRO_X $SPRO_Y $SPRO_RADIUS; then
 			# 	continue
 			# fi
 

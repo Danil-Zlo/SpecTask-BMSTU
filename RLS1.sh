@@ -23,9 +23,10 @@ TMP_DIR="/tmp/GenTargets"
 TARGET_DIR="$TMP_DIR/Targets"
 DESTROY_DIR="$TMP_DIR/Destroy"
 
-FOUNDED_OBJ="rls1FoundedObj.txt"
-FOUNDED_FIRST_TARG="rls1FirstTarget.txt"
-REPORTED_TARG="rls1Reported.txt"
+DB_DIR="./db"
+FOUNDED_OBJ="$DB_DIR/rls1FoundedObj.txt"
+FOUNDED_FIRST_TARG="$DB_DIR/rls1FirstTarget.txt"
+REPORTED_TARG="$DB_DIR/rls1Reported.txt"
 
 # Директория для сообщений
 MSG_DIR="./messages"
@@ -45,8 +46,8 @@ i=0
 while :
 do
 	# Счетчик такта
-	echo "--------------------"
-	echo $i
+	# echo "--------------------"
+	# echo $i
 	((i++))
 
 	# Массив объектов за текущий такт 
@@ -107,10 +108,9 @@ do
 			fi
 
 			# Если не входит в зону видимости, игнорируем цель
-			if ! can_i_see $x_coord $y_coord; then
+			if ! can_i_see $x_coord $y_coord $RLS_X $RLS_Y $RLS_RADIUS; then
 				continue
 			fi
-
 			# Запоминаем время обнаружения 
 			# time=$(date '+%H:%M:%S:%N' | cut -d. -f1)
 
