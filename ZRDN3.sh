@@ -2,13 +2,13 @@
 
 source ./pkg/functions.sh
 
-MY_NAME="SPRO"        # Название данного объекта
+MY_NAME="ZRDN3"        # Название данного объекта
 
-# Параметры СПРО [м, град.]
-SPRO_X=$((3300*1000))
-SPRO_Y=$((3500*1000))
-SPRO_RADIUS=$((1100*1000))
-SPRO_AMMUNITION=10   # Боезапас [шт.]
+# Параметры ЗРДН3 Омск [м, град.]
+ZRDN_X=$((5500*1000))
+ZRDN_Y=$((3750*1000))
+ZRDN_RADIUS=$((550*1000))
+ZRDN_AMMUNITION=20   # Боезапас [шт.]
 RECHARGE_PERIOD=20  # Период перезарядки [такт]
 
 TMP_DIR="/tmp/GenTargets"
@@ -44,7 +44,7 @@ MSG_DIR="./messages"
 
 i=0
 # Заряжаем систему
-ammunition=$SPRO_AMMUNITION		# оставшееся количество боезапаса [шт]
+ammunition=$ZRDN_AMMUNITION		# оставшееся количество боезапаса [шт]
 i_out_ammunition=0  			# Такт, на котором закончился боезапас
 
 while :
@@ -64,7 +64,7 @@ do
 
 	# Перезаряжаемся, если прошёл КД и боекомплект пустой
 	if (($i - $i_out_ammunition > $RECHARGE_PERIOD)) && (( $ammunition == 0 )); then
-		ammunition=$SPRO_AMMUNITION
+		ammunition=$ZRDN_AMMUNITION
 		
 		# Сообщаем о том, что перезарядились
 		msg="[ Боекомплект $MY_NAME пополнен ]"
@@ -214,7 +214,7 @@ do
 			fi
 
 			# Если не входит в зону видимости, игнорируем цель
-			if ! can_i_see $x_coord $y_coord $SPRO_X $SPRO_Y $SPRO_RADIUS; then
+			if ! can_i_see $x_coord $y_coord $ZRDN_X $ZRDN_Y $ZRDN_RADIUS; then
 				continue
 			fi
 
