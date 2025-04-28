@@ -24,9 +24,9 @@ TARGET_DIR="$TMP_DIR/Targets"
 DESTROY_DIR="$TMP_DIR/Destroy"
 
 DB_DIR="./db"
-FOUNDED_OBJ="$DB_DIR/rls1FoundedObj.txt"
-FOUNDED_FIRST_TARG="$DB_DIR/rls1FirstTarget.txt"
-REPORTED_TARG="$DB_DIR/rls1Reported.txt"
+FOUNDED_OBJ="$DB_DIR/${MY_NAME}-FoundedObj.txt"
+FOUNDED_FIRST_TARG="$DB_DIR/${MY_NAME}-FirstTarget.txt"
+REPORTED_TARG="$DB_DIR/${MY_NAME}-Reported.txt"
 
 # Директория для сообщений
 MSG_DIR="./messages"

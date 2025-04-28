@@ -8,7 +8,7 @@ MY_NAME="SPRO"        # Название данного объекта
 SPRO_X=$((3300*1000))
 SPRO_Y=$((3500*1000))
 SPRO_RADIUS=$((11000*1000))
-SPRO_AMMUNITION=20   # Боезапас [шт.]
+SPRO_AMMUNITION=1   # Боезапас [шт.]
 RECHARGE_PERIOD=20  # Период перезарядки [такт]
 
 TMP_DIR="/tmp/GenTargets"
@@ -17,10 +17,11 @@ TARGET_DIR="$TMP_DIR/Targets"
 DESTROY_DIR="$TMP_DIR/Destroy"
 
 DB_DIR="./db"
-FOUNDED_OBJ="$DB_DIR/sproFoundedObj.txt"
-FOUNDED_FIRST_TARG="$DB_DIR/sproFirstTarget.txt"
-REPORTED_TARG="$DB_DIR/sproReported.txt"
-SHOOTING_TARGETS_ID="$DB_DIR/sproShootingTarget.txt"
+FOUNDED_OBJ="$DB_DIR/${MY_NAME}-FoundedObj.txt"
+FOUNDED_FIRST_TARG="$DB_DIR/${MY_NAME}-FirstTarget.txt"
+REPORTED_TARG="$DB_DIR/${MY_NAME}-Reported.txt"
+SHOOTING_TARGETS_ID="$DB_DIR/${MY_NAME}-ShootingTarget.txt"
+HOLDING_TARGETS_ID="$DB_DIR/${MY_NAME}-HoldingTarget.txt"
 
 # Директория для сообщений
 MSG_DIR="./messages"
@@ -34,8 +35,11 @@ MSG_DIR="./messages"
 # Файл с ID целей, по которым стреляли
 > $SHOOTING_TARGETS_ID
 
+# Файл с ID сопровождаемых целей
+> $HOLDING_TARGETS_ID
+
 # Файл c обработанными (переданными) целями 
-# РЛС проверяет цель на отсутствие записи о ней здесь, иначе будет повторная выдача
+# Объект проверяет цель на отсутствие записи о ней здесь, иначе будет повторная выдача
 > $REPORTED_TARG
 
 i=0
@@ -53,6 +57,11 @@ do
 	# Массив объектов за текущий такт (если меняю количество max целей в генераторе, то head тоже изменить)
 	list_targets=$(ls -t $TARGET_DIR | head -n $Max_N_Targets)
 
+	# Всем обстреленным целям ставим "-" (в дальнейшем отмечаем "+", если встретится на итерации)
+	if [[ $((i % 2)) -eq 0 ]] && grep -q '+' "$SHOOTING_TARGETS_ID"; then	
+		sed -i -e 's/+/-/g' $SHOOTING_TARGETS_ID
+	fi
+
 	# Перезаряжаемся, если прошёл КД и боекомплект пустой
 	if (($i - $i_out_ammunition > $RECHARGE_PERIOD)) && (( $ammunition == 0 )); then
 		ammunition=$SPRO_AMMUNITION
@@ -61,6 +70,42 @@ do
 		msg="Боезапас $MY_NAME пополнен"
 		echo $msg
 		send_msg "$msg"
+
+		# Обстрел отслеживаемых целей (когда пополнили боекомплект)
+		while IFS= read -r line; do	
+			if [ $ammunition -gt 0 ]; then				
+				id_trg=$(echo "$line" | awk '{print $1}')
+				
+				# Удаляем цель из списка сопровождаемых
+                sed -i "/$id_trg/d" $HOLDING_TARGETS_ID
+	
+                # Выстрел
+                echo $MY_NAME >> $DESTROY_DIR/$id_trg
+				((ammunition--))
+
+				# Отмечаем в списке выстрелов эту цель
+				echo "$id_trg +" >> $SHOOTING_TARGETS_ID
+				
+                # Сообщаем о выстреле
+                msg="Выстрел в цель ID: $id_trg"
+				echo $msg
+				send_msg "$msg"
+
+				# Если закончился боекомплект -> сообщаем
+				if [ $ammunition -eq 0 ]; then
+					msg="Закончился боекомплект $MY_NAME"
+					echo $msg
+					send_msg "$msg"      
+
+					# Запоминаем такт, на котором закончился боекомплект
+					i_out_ammunition=$i
+
+					# Выход из цикла
+					break
+				fi
+
+			fi
+		done < "$HOLDING_TARGETS_ID"
 	fi
 	
 	# Читаем координаты объекта
@@ -82,10 +127,14 @@ do
 		if grep -q $id_target $FOUNDED_FIRST_TARG; then
 			# Если уже записали ранее, имеем дело с 2-й засечкой	
 			
+			# Если цель в списке сопровождаемых -> игнорируем 
+			if grep -q $id_target $HOLDING_TARGETS_ID; then
+				continue
+			fi
+
 			# Если цель обнаружена в файле с выстрелами, значит промахнулись
 			if grep -q $id_target $SHOOTING_TARGETS_ID; then
-				# Сообщаем о промахе
-				msg="Промах ID: $id_target" 
+				msg="ПРОМАХ      $id_target" 
 				echo $msg
 				send_msg "$msg"
 
@@ -94,16 +143,22 @@ do
 
 				# Если боекмоплекта нет -> стрелять не можем, пропускам итерацию
 				if [ $ammunition -eq 0 ]; then
+					msg="Сопровождаю $id_target. Ожидаю боеприпасов." 
+					echo $msg
+					send_msg "$msg"
+
+					# Цель в список сопровождаемых
+					echo "$id_target" >> $HOLDING_TARGETS_ID
 					continue            
 				fi
-
+				
                 # Повторный выстрел (если есть заряд)
                 echo $MY_NAME >> $DESTROY_DIR/$id_target
 				((ammunition--))
 
-                # Новая запись и сообщение о выстреле
-                echo $id_target $i >> $SHOOTING_TARGETS_ID
-
+				# Отмечаем в списке выстрелов эту цель
+				echo "$id_target +" >> $SHOOTING_TARGETS_ID
+				
                 # Сообщаем о выстреле
                 msg="Выстрел в цель ID: $id_target"
 				echo $msg
@@ -111,7 +166,7 @@ do
 
 				# Если закончился боекомплект -> сообщаем
 				if [ $ammunition -eq 0 ]; then
-					msg="Закончился боекомплект"
+					msg="Закончился боекомплект $MY_NAME"
 					echo $msg
 					send_msg "$msg"      
 
@@ -176,6 +231,12 @@ do
 
 			# Если боекмоплекта нет -> стрелять не можем, пропускам итерацию
 			if [ $ammunition -eq 0 ]; then
+				msg="Сопровождаю $id_target. Ожидаю боеприпасов." 
+				echo $msg
+				send_msg "$msg"
+
+				# Цель в список сопровождаемых
+				echo "$id_target" >> $HOLDING_TARGETS_ID
 				continue            
 			fi
 
@@ -183,8 +244,8 @@ do
 			echo $MY_NAME >> $DESTROY_DIR/$id_target
 			((ammunition--))
 
-			# Записываем ID цели в БД о том, что по цели был выстрел + номер такта
-			echo $id_target $i >> $SHOOTING_TARGETS_ID
+			# Записываем ID цели в БД о том, что по цели был выстрел
+			echo "$id_target +" >> $SHOOTING_TARGETS_ID
 
             # Сообщаем о выстреле
             msg="Выстрел в цель ID: $id_target"
@@ -193,7 +254,7 @@ do
 
 			# Если закончился боекомплект -> сообщаем
 			if [ $ammunition -eq 0 ]; then
-				msg="Закончился боекомплект"
+				msg="Закончился боекомплект $MY_NAME"
 				echo $msg
 				send_msg "$msg"
 
@@ -216,27 +277,24 @@ do
 		fi
 	done
 
-    # Проверяем БД обстреленных целей на наличие сбитых
-    while IFS= read -r line; do
-        # Если разница в тактах больше 1, значит цель больше не появлялась -> сбита
-        i_shoot=$(echo "$line" | awk '{print $2}')
-        if (( i_shoot < i-1 )); then
-            id_trg=$(echo "$line" | awk '{print $1}')
+    # Проверяем БД обстреленных целей на наличие сбитых (каждые 2 такта)
+	if [[ $((i % 2)) -eq 1 ]]; then	
+		while IFS= read -r line; do		
+			# Если строка содержит "-" -> её не было на этой итерации -> сбили
+			
+			flag=$(echo "$line" | awk '{print $2}')
+			if [[ "$flag" == "-" ]]; then
+				id_trg=$(echo "$line" | awk '{print $1}')
+				# Удаляем из файла о выстрелах этот ID
+				sed -i "/$id_trg/d" $SHOOTING_TARGETS_ID
 
-            # Удаляем из файла о выстрелах этот ID
-            sed -i "/$id_trg/d" $SHOOTING_TARGETS_ID
+				# Сообщаем, что цель сбита
+				msg="Сбита цель ID: $id_trg"
+				echo $msg
+				send_msg "$msg" 
+			fi
+		done < "$SHOOTING_TARGETS_ID"
+	fi
 
-            # Сообщаем, что цель сбита
-            msg="Сбита цель ID: $id_trg"
-			echo $msg
-			send_msg "$msg" 
-        fi
-    done < "$SHOOTING_TARGETS_ID"
 	sleep $TACT
 done
-
-# Как исправить баг с ложным попаданием:
-# В журнале выстрелов возле каждой цели ставить - в начале каждой главной итерации while
-# Если эта цель попалась в итерации for, то возле неё ставим "+", считаем, что промахнулись и стреляем повторно
-# В конце проверяем список, те у кого стоит - считаем сбитыми
-# при выстреле (создании новой записи о выстреле) не забыть поставить возде цели "+"
