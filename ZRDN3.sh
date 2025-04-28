@@ -208,7 +208,7 @@ do
 			type_target=$(get_type_target $speed)
 
 			# Если тип цели не наш, игнорируем, помечаем как "рассмотренная"
-			if [ "$type_target" != 'ББ БР' ]; then
+			if [ "$type_target" == 'ББ БР' ]; then
 				echo $id_target >> $REPORTED_TARG
 				continue
 			fi
